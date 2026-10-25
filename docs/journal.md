@@ -46,3 +46,15 @@ Copy the following headings and fill them with your own observations. Do not mar
 **How I would decide:** First get the simple CNN and PPO working. Then, if I have time, change only the CNN and give both versions similar training time. I need to compare finishes and lap times on tracks I did not train on. Until I run that test, the residual version is just an idea.
 
 **Question I still have:** Would SAC work better than PPO here? SAC can reuse old driving experience, which might help when collecting new experience is slow. But I have not measured whether its image replay storage and training updates would fit my Colab time better. I should test it only after I have a baseline and understand how I would compare them fairly. [SAC paper](https://arxiv.org/abs/1801.01290).
+
+## What I learned about policies and values
+
+I learned that a **policy** is the agent's way of choosing an action from what it sees. In CarRacing, it takes the current image (or recent images) and chooses steering, gas and brake. During training it may try different actions; when I evaluate it, I can ask it to choose its most likely action.
+
+I learned that a **value function** estimates how much future reward the agent can expect from a situation if it keeps following a particular policy. I can write this as `Vπ(s)`: the value of situation `s` under policy `π`. A **Q-value**, `Qπ(s, a)`, asks a more specific question: how much future reward can I expect if I take action `a` in situation `s`, then follow policy `π`? These are estimates, not the actual future. They include future rewards with later rewards usually discounted.
+
+In **value-based learning**, the agent learns values for actions and uses them to choose what to do. **Q-learning** is an example: it updates its Q estimates using the reward it just received and an estimate of the best value available at the next step. It can then pick the action with the highest estimated Q-value, while still trying other actions during training. Basic Q-learning is easiest with a small list of discrete actions. Our steering, gas and brake are continuous, so applying basic Q-learning directly would be awkward.
+
+In **policy-based learning**, the agent directly learns a policy that chooses actions. PPO is an example. It also learns a value estimate to help judge whether an action turned out better or worse than expected, so the two ideas can be used together. That helped me understand why the PPO model has both an actor and a critic.
+
+An **optimal policy** would choose actions that give the highest expected total discounted reward for the task. If I had the exact best Q-values, I could choose the action with the highest Q-value in each situation. In practice I only learn approximations from limited experience. Also, the game's reward is not exactly the competition's lap-time score, so a policy that gets high training reward is not automatically the fastest or most reliable driver. I still need to test finishes and times on unseen tracks.
