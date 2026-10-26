@@ -5,6 +5,7 @@ gymnasium[box2d]==1.3.0
 stable-baselines3==2.9.0
 torch>=2.8,<3.0
 numpy>=1.26,<3.0
+tqdm>=4.66,<5.0
 
 # Image preprocessing, experiment plots, logging, and recorded evaluation runs.
 pillow>=10,<13
