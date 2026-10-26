@@ -19,4 +19,11 @@ print("Pixel type:", observation.dtype)
 print("Action minimums:", env.action_space.low)
 print("Action maximums:", env.action_space.high)
 
+for _ in range(1000):
+    action = env.action_space.sample()
+    observation, reward, terminated, truncated, info = env.step(action)
+
+    if terminated or truncated:
+        observation, info = env.reset()
+
 env.close()
