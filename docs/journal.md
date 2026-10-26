@@ -58,3 +58,14 @@ In **value-based learning**, the agent learns values for actions and uses them t
 In **policy-based learning**, the agent directly learns a policy that chooses actions. PPO is an example. It also learns a value estimate to help judge whether an action turned out better or worse than expected, so the two ideas can be used together. That helped me understand why the PPO model has both an actor and a critic.
 
 An **optimal policy** would choose actions that give the highest expected total discounted reward for the task. If I had the exact best Q-values, I could choose the action with the highest Q-value in each situation. In practice I only learn approximations from limited experience. Also, the game's reward is not exactly the competition's lap-time score, so a policy that gets high training reward is not automatically the fastest or most reliable driver. I still need to test finishes and times on unseen tracks.
+
+## Identifying the parts of my RL problem
+
+I learned that before choosing an algorithm, I should be clear about what is learning, what it interacts with, what it can see, and what it can do. For this project:
+
+- **Agent:** my AI driver. Its policy takes the image it receives and chooses how to control the car. The neural network is part of the agent; the car and track are not.
+- **Environment:** Gymnasium's `CarRacing-v3` game. It generates the track, simulates what happens when the car moves, and gives the agent the next image and a reward after each action.
+- **State and observation:** the full game state includes things such as the car's position and speed, but my driver does not get those numbers. What it actually receives is an RGB image with shape `(96, 96, 3)`. I can use recent images together to help it infer motion. I should call this image an **observation** rather than claim the agent sees the full state.
+- **Actions:** three continuous controls: `[steering, gas, brake]`. Steering can be from `-1` to `1`; gas and brake can each be from `0` to `1`. The agent has to choose values in these ranges from its observation.
+
+So the basic interaction I need to understand is: **image → action → environment moves → new image and reward**. The competition says the final driver can use the image, but not hidden game information such as the car's exact position or the track coordinates.
