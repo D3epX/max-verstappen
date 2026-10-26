@@ -95,3 +95,51 @@ This is my explanation from studying the algorithm. I have not trained or measur
 **How the networks actually learn.** PPO splits a rollout into small batches and runs several training passes. The actor loss uses advantages and the clipped probability comparison. The critic loss measures the difference between predicted values and return targets. An entropy term can encourage the actor to keep trying varied actions instead of becoming too predictable too early. PyTorch computes gradients through these losses, and the optimizer changes the weights. If the CNN is shared, learning can change its filters as well as the actor and critic heads. I need to monitor whether the updates improve driving on new tracks, because lower training losses alone do not prove a better driver.
 
 **The full loop in my words:** collect fresh drives → estimate returns and advantages → update actor and critic for a few passes → collect fresh drives again → evaluate without training noise. The critic helps the actor learn, but only the actor's actions control the car. My competition score comes from finishing laps quickly and avoiding DNFs, so I must judge checkpoints by those results as well as by training reward.
+
+## Running the car demo and the Q-learning example
+
+I learned how to run the CarRacing environment and the small Q-learning program from the project folder. I activate the virtual environment first, then run the script I want:
+
+```bash
+cd /home/dahmane/dev/max-verstappen
+source .venv/bin/activate
+python src/enviroment.py
+```
+
+The car window shows Gymnasium's `CarRacing-v3` environment. The script prints the image shape and pixel type, then takes 1,000 randomly sampled actions so I can watch the game. It resets if an episode ends and closes the environment when the loop finishes. This is only a way to see and interact with the game; the random actions do not mean the car is learning, and this script does not use a CNN or PPO yet.
+
+The separate Q-learning example runs with:
+
+```bash
+python src/q_learning.py
+```
+
+That program trains a tabular agent in Gymnasium's `Blackjack-v1`, not in CarRacing. Its progress display shows completed hands and updates a few learning summaries, including the exploration rate (`epsilon`), recent win rate, and number of observation/action situations stored in its Q table. After training, it evaluates the learned policy over 1,000 hands without random exploration. This helped me practice the Q-learning idea on a small problem, but it is not a Q-learning driver for the car: Blackjack has a small discrete state and action space, while CarRacing gives image observations and continuous steering and pedal controls.
+
+The two examples taught me different parts of the project: the car script shows how to start, observe, control, reset and close the environment; the Blackjack script shows a simple agent learning action values and displaying its training progress. My next step is to build and understand the CarRacing agent separately, one function at a time.
+
+## Setting up PPO and planning the training
+
+With coding assistance, I initialized the empty PPO files for the configuration, environment, rollout, GAE, loss, update and training loop. I also made separate folders for the basic CNN and the IMPALA CNN, plus a blank notebook for each. We have only created the structure so far. The functions are not implemented and I have not trained a PPO car yet. I want to fill the files one function at a time so I can understand what each part does.
+
+I made a [training plan](TRAINING_STRATEGY.md) with the goal of winning on the unseen track too. I learned that I should train one driver on many different tracks instead of making a driver for each seed. The idea is to learn how to handle different roads and corners rather than depend on the three known tracks.
+
+I will keep training seeds separate from validation seeds (`10000–10019`) and final test seeds (`20000–20019`). Validation will help me choose the model. The final test will stay untouched until I choose the settings. The known competition seeds, `202`, `42` and `203`, will also stay out of training. The mystery track is unknown, so I still need to see how well this plan transfers to new tracks.
+
+I will start with PPO and the basic CNN, then compare the IMPALA CNN if the first driver is working. I want the fastest car, but I learned that finishing consistently matters too: a DNF costs 70 seconds. I will compare average penalized time and completion rate, not just the best lap or the training reward.
+
+I also learned what `gae.py` is for. GAE estimates whether an action did better or worse than the critic expected, using rewards and value predictions from the rollout. PPO uses those advantages when updating the policy. When we implement it, we need to handle real episode endings and time limits correctly and avoid mixing the end of one race with the start of another.
+
+## My plan to reduce overfitting
+
+I want the car to learn how to drive on different roads, not just get good at the tracks it practices. Overfitting would mean it performs well on training tracks but struggles on new ones. Training reward alone will not tell me whether it can handle the mystery track.
+
+For the first experiment, I will use 100 training tracks, with seeds `1000–1099`. The numbers are just identifiers: a higher seed does not mean a harder track. This range gives me 100 tracks without overlapping my evaluation groups. I understand that 100 is a starting choice, not a proven best number or a guarantee against overfitting.
+
+At each new training episode, I will randomly choose from that pool. I will keep one driver learning across the different tracks instead of training a separate driver for each one. A track can appear many times, so 100 tracks does not mean only 100 episodes.
+
+I will keep seeds `202`, `42` and `203` out of training for this baseline. Training on them is allowed by the challenge, but I want to first see whether the driver can handle them without practicing them. My validation tracks (`10000–10019`) and final test tracks (`20000–20019`) will also stay out of training. I will use validation to choose checkpoints, and only use the final test after choosing the model and settings. I should also avoid repeatedly changing the model just to improve the three public tracks.
+
+During training, I will compare results on a fixed sample of training tracks with results on validation tracks, without learning or exploration noise during either evaluation. If training results improve while validation results stay poor or get worse, that is a warning of overfitting. I will compare completion rate and average DNF-penalized time, not just the fastest successful lap.
+
+If that gap appears, I will inspect the driving and test a larger training pool or fresh random training seeds, still excluding every reserved evaluation seed. I will change one thing at a time and check whether it improves validation results. I will keep the best validated checkpoint rather than assume the last checkpoint is best. These steps help me detect and reduce overfitting; I still need actual experiments to know whether the car generalizes.
