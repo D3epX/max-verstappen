@@ -143,3 +143,55 @@ I will keep seeds `202`, `42` and `203` out of training for this baseline. Train
 During training, I will compare results on a fixed sample of training tracks with results on validation tracks, without learning or exploration noise during either evaluation. If training results improve while validation results stay poor or get worse, that is a warning of overfitting. I will compare completion rate and average DNF-penalized time, not just the fastest successful lap.
 
 If that gap appears, I will inspect the driving and test a larger training pool or fresh random training seeds, still excluding every reserved evaluation seed. I will change one thing at a time and check whether it improves validation results. I will keep the best validated checkpoint rather than assume the last checkpoint is best. These steps help me detect and reduce overfitting; I still need actual experiments to know whether the car generalizes.
+
+## Why I chose PPO for this environment
+
+After studying PPO, I understand how its main parts fit together. I chose it as my first CarRacing algorithm because it can learn a policy for continuous controls and gives me an actor-critic training loop I can explain and build step by step. My action is three numbers: steering in `[-1, 1]`, gas in `[0, 1]` and brake in `[0, 1]`. I do not need to turn these controls into a small list of fixed driving actions.
+
+PPO is my starting choice, not a claim that it is the best algorithm for this race. Its clipped objective discourages some overly large changes in action probabilities, but it does not guarantee stable learning or a winning car. It is on-policy: it collects fresh experience with the current policy, uses that rollout for several optimization passes, then collects new experience. It does not reuse an unlimited history of old drives like an off-policy method with a replay buffer. This can make collecting enough experience expensive, so I need to measure what fits in Colab. My reason for starting here is having a clear baseline I understand before comparing more methods. [PPO paper](https://arxiv.org/abs/1707.06347).
+
+### From the track image to an action
+
+My environment currently returns an RGB `uint8` image with shape `(96, 96, 3)`. It does not give the policy the track seed, car coordinates or a correct steering label. The seed stored in `info` is only for logging. The raw image is an observation, not the complete simulator state.
+
+My planned preprocessing will resize the image, turn it into grayscale and stack four recent frames. A batch will have shape `(batch_size, 4, 84, 84)`. The recent frames can provide clues about motion that one image cannot show. Pixel values will be converted to floating point and divided by 255 once. At every new episode, the frame history must be reset so images from two different tracks do not get mixed together. This preprocessing is still a plan; `environment.py` currently returns the original RGB image.
+
+The CNN will turn those images into features. The actor will use the features to produce a Gaussian action distribution, with a mean for each control and learned standard deviations. During training, sampling from that distribution provides exploration. The critic will use features to predict one value: the expected future discounted reward under the current policy. It does not predict steering. I plan to share the CNN between the actor and critic, with separate output heads, so both learning signals can update the image features.
+
+For the initial Gaussian policy, I plan to store the sampled action before clipping, together with its log probability, and clip a copy to the environment's action bounds before stepping the game. PPO must compare old and new log probabilities for the same original sample. Replacing that stored sample with the clipped action would make the probability calculation inconsistent. Evaluation will use the policy mean with the same bounds. I must not introduce a different action transformation only when evaluating.
+
+### What the car learns from
+
+After an action, `env.step(action)` returns the next observation, reward, `terminated`, `truncated` and `info`. The default reward encourages visiting new road tiles and penalizes time; it is not a direct label saying which steering angle was correct. I will keep this reward for the baseline and measure actual finishes and lap times separately.
+
+For each rollout transition, I need the observation, original sampled action, reward, old log probability, critic value, and episode-ending information. I also need the correct next-observation value for calculating targets. I will collect a fixed number of transitions, so a rollout may end halfway through a race or contain several races. I do not need a full completed lap before PPO can update.
+
+### How the rollout becomes a learning signal
+
+The critic estimates the future; GAE combines its prediction errors with the collected rewards to estimate advantages. A positive advantage encourages the sampled action, while a negative advantage discourages it. This is an estimate from experience, not proof that one action alone caused the outcome. With GAE, the critic's return target is the estimated advantage plus the stored value prediction.
+
+I need to distinguish three boundaries. At a true termination, the future value is zero. At a time-limit truncation, I normally bootstrap from the final observation's value, but I stop the advantage recursion across the episode boundary. At the end of a rollout that stops during an ongoing race, I also bootstrap from the next observation. I must never use the reset image of a new race as the final image of the previous race.
+
+### What the PPO update changes
+
+For each stored action, PPO calculates `ratio = exp(new_log_probability - old_log_probability)`. Its actor objective uses the smaller of `ratio × advantage` and `clipped_ratio × advantage`, then averages over the minibatch. We minimize the negative of that objective. The clipping limits the incentive to keep pushing a probability ratio beyond the chosen range; it does not directly limit the car's steering or guarantee that every policy change is small.
+
+The critic loss compares its current value predictions with the fixed return targets. An entropy bonus can encourage exploration. The combined loss lets PyTorch compute gradients, and the optimizer changes the network weights. Rollout values, old log probabilities, advantages and return targets must be treated as fixed data during these updates. I will shuffle the rollout into minibatches and make a limited number of passes before collecting fresh experience.
+
+Lower losses alone will not convince me that the driver improved. I will also inspect action behavior, estimated policy change, value prediction quality and videos, then check completion rate and penalized time on validation tracks. The goal is fast, reliable driving on unseen roads.
+
+## How I will implement and check each file
+
+I want to implement one file at a time, explain its functions, run a small check, and discuss the output before moving on. I will record what actually happened, including failures, rather than call a planned feature finished.
+
+1. **`environment.py`:** the first implementation is in place. It creates the game, samples training tracks and resets evaluation tracks. The initial checks passed for separate seed groups, reproducible sampling, observation shape and dtype, a valid environment step, and fixed-track resets. This checks the environment plumbing, not learning.
+2. **`config.py`:** define the experiment settings and explain each one. Check that the rollout size and minibatch size fit together and that seeds and budgets are explicit.
+3. **`rollout.py`:** define how transitions are stored and collected. Initially use a small temporary policy to check data shapes and reset handling; this will not demonstrate a trained driver.
+4. **`gae.py`:** calculate advantages and return targets. Compare a short hand-calculated example with the output, including terminal, truncated and unfinished rollouts.
+5. **`loss.py`:** implement the actor objective, critic loss and entropy term. Use small example tensors to inspect the probability ratio and clipping behavior.
+6. **`update.py`:** combine minibatches, backpropagation and optimizer steps. Check that gradients are finite, weights change, and stored rollout targets stay fixed.
+7. **`models/cnn/network.py`:** build the image encoder and the actor/critic interface needed by the training loop. Trace the shapes through the layers and check action and value outputs before connecting it to the game.
+8. **`train.py`:** connect the checked parts, logging and checkpoints. Start with a short integration run, inspect the results, and only then plan a longer Colab run.
+9. **`models/impala_cnn/network.py`:** add the residual image encoder after the baseline works. Compare it while keeping the PPO setup and evaluation protocol consistent.
+
+The notebooks will follow these steps and show the observations and results. Implementing PPO's numerical pieces with small examples first will let me study them before adding the CNN, but meaningful image-based training needs the network connected to the complete loop. The remaining files are still empty at this point.
