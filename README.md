@@ -6,9 +6,9 @@ The environment supplies a `96 × 96 × 3` RGB image. The agent returns three co
 
 ## Race preview
 
-![PPO and basic CNN driver navigating consecutive corners](docs/assets/carracing-highlight.gif)
+![PPO and basic CNN driver staying on the road along a straight](docs/assets/carracing-highlight.gif)
 
-A nine-second highlight from the trained driver's run, shown at the original playback speed. [Watch or download the MP4](docs/assets/carracing-highlight.mp4).
+A short straight-line highlight from the trained driver's run, with the car staying on the road. Shown at the original playback speed. [Watch or download the MP4](docs/assets/carracing-highlight.mp4).
 
 ## Architectures
 
