@@ -896,3 +896,13 @@ With about half an hour remaining, I chose to publish the verified 400k basic-CN
 ### Removing the discarded notebook
 
 The public-seed mixed-training notebook and its run instructions have been removed at my request. The local trainer still rejects a checkpoint with a different sampler instead of silently changing its training distribution. General checkpoint metadata remains compatible with previous exports. My baseline weights and original training checkpoint are unchanged. Earlier journal entries remain historical discussion, not current instructions or confirmed organizer permission.
+
+### A separate steering-stability experiment on ordinary training roads
+
+I asked for a small experiment that could fit the remaining time. The new local notebook starts from a protected copy of the selected 400k model, uses the same CNN/PPO/gSDE structure and trains only on ordinary seeds 1000–1099. The discarded public-road sampling proposal remains removed. This new notebook has not been published or used to replace my released model.
+
+The hypothesis is to subtract 0.01 times the squared change in executed steering once per policy decision. This may reduce abrupt left/right oscillation, but it might also discourage useful corrections. The first decision after an episode reset is unpenalized, and constant steering has no change cost. We keep the game's progress/time reward and add no gas bonus. Evaluation uses the original reward and no steering filter. These are trial choices, not a confirmed improvement.
+
+The experiment also tests a learning rate of 0.0001. Since the reward and learning rate both change, a result would not isolate their individual effects. It caps training near 10k additional transitions or about 12 minutes per invocation, leaving time for three validation roads before and after. Individual updates and saves can overrun the timer; setup and evaluation are additional. A timer stop during rollout collection discards the incomplete rollout but keeps earlier updates. Transition count alone does not prove how many updates happened.
+
+The notebook's syntax passed. A short test checked steering-cost arithmetic, episode reset, unchanged reward on evaluation environments, rejection of public seeds in training, independent parent weights, a real 32-transition continued PPO update at the reduced Adam rate, timer stopping and checkpoint metadata. This test used a temporary 64-transition fixture, not competitive training of my 400k model. No faster driving has been measured. I will retain the baseline unless the candidate finishes at least as reliably and improves penalized time. The ordinary local trainer refuses custom-reward checkpoints unless their matching reward wrapper is supplied through the appropriate workflow.
