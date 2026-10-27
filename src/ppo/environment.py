@@ -1,7 +1,7 @@
 """Track selection and raw CarRacing observations for our PPO project.
 
 No training starts when this module is imported. Images stay RGB uint8 with
-shape (96, 96, 3); preprocessing and frame stacking will be separate steps.
+shape (96, 96, 3) in make_env; build_vec_env adds notebook preprocessing.
 """
 
 # Literal describes the accepted split names for editors and type checkers.
@@ -12,15 +12,8 @@ import gymnasium as gym
 import numpy as np
 
 
-# range stops BEFORE its second argument: 1000 through 1099 gives 100 tracks.
-# Tuples keep these fixed experiment groups from being changed accidentally.
-TRAINING_SEEDS = tuple(range(1000, 1100))
-# Validation tracks help us select checkpoints and settings without learning
-# from those tracks. Test tracks stay untouched until we choose the model.
-VALIDATION_SEEDS = tuple(range(10000, 10020))
-TEST_SEEDS = tuple(range(20000, 20020))
-# These are the organizer's known tracks; they are outside our training pool.
-PUBLIC_SEEDS = (202, 42, 203)
+# Shared seed groups keep the local pipeline and checkpoint configuration aligned.
+from .config import PPOConfig, TRAINING_SEEDS, VALIDATION_SEEDS, TEST_SEEDS, PUBLIC_SEEDS
 
 
 def make_env(render_mode: str | None = None) -> gym.Env:
@@ -104,3 +97,108 @@ def reset_evaluation_episode(
     observation, info = env.reset(seed=int(track_seed))
     info = {**info, "track_seed": int(track_seed), "evaluation_split": split}
     return observation, info
+
+
+# These wrapper implementations retain the exact notebook preprocessing order.
+from PIL import Image
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import DummyVecEnv, VecTransposeImage, VecFrameStack
+
+class TrackSampler(gym.Wrapper):
+    """Choose tracks from one explicit pool; the policy never receives the seed."""
+    def __init__(self, env, seeds, random_order=True, sampler_seed=7):
+        super().__init__(env)
+        self.seeds = tuple(int(seed) for seed in seeds)
+        if not self.seeds:
+            raise ValueError("The track pool cannot be empty")
+        self.random_order = random_order
+        self.rng = np.random.default_rng(sampler_seed)
+        self.index = 0
+        self.track_seed = None
+
+    def reset(self, *, seed=None, options=None):
+        # Here seed controls the SAMPLER. The chosen track seed is passed on
+        # to CarRacing. SB3 seeds each worker once before its first reset.
+        if seed is not None:
+            self.rng = np.random.default_rng(seed)
+            self.index = 0
+        if self.random_order:
+            self.track_seed = int(self.rng.choice(self.seeds))
+        else:
+            self.track_seed = self.seeds[self.index % len(self.seeds)]
+            self.index += 1
+        observation, info = self.env.reset(seed=self.track_seed, options=options)
+        return observation, {**info, "track_seed": self.track_seed}
+
+    def step(self, action):
+        observation, reward, terminated, truncated, info = self.env.step(action)
+        return observation, reward, terminated, truncated, {
+            **info, "track_seed": self.track_seed,
+        }
+
+class ActionRepeat(gym.Wrapper):
+    """Repeat a decision, sum rewards, and count actual simulator steps."""
+    def __init__(self, env, repeat=2):
+        super().__init__(env)
+        if repeat < 1:
+            raise ValueError("repeat must be positive")
+        self.repeat = repeat
+        self.raw_steps = 0
+
+    def reset(self, **kwargs):
+        self.raw_steps = 0
+        return self.env.reset(**kwargs)
+
+    def step(self, action):
+        total_reward = 0.0
+        for _ in range(self.repeat):
+            observation, reward, terminated, truncated, info = self.env.step(action)
+            self.raw_steps += 1
+            total_reward += float(reward)
+            # Never continue stepping after either kind of episode ending.
+            if terminated or truncated:
+                break
+        return observation, total_reward, terminated, truncated, {
+            **info, "raw_steps": self.raw_steps,
+        }
+
+class GrayResize(gym.ObservationWrapper):
+    """RGB -> resized grayscale; keep uint8 until SB3 normalizes it once."""
+    def __init__(self, env, size=84):
+        super().__init__(env)
+        self.size = size
+        self.observation_space = gym.spaces.Box(
+            low=0, high=255, shape=(size, size, 1), dtype=np.uint8,
+        )
+
+    def observation(self, observation):
+        image = Image.fromarray(observation).convert("L")
+        image = image.resize((self.size, self.size), Image.Resampling.BILINEAR)
+        return np.asarray(image, dtype=np.uint8)[..., None].copy()
+
+
+def build_vec_env(config: PPOConfig, seeds=None, *, n_envs=None,
+                  random_order=True, render_mode=None, max_episode_steps=3000):
+    """Raw TimeLimit -> track sampling -> repeat -> grayscale -> monitor -> stack.
+
+    DummyVecEnv runs physics sequentially. Network inference batches observations,
+    but a CUDA policy does not move Box2D physics onto the GPU. Frame stacking
+    zero-pads missing history and removes old episode frames on automatic reset.
+    """
+    seeds = config.training_seeds if seeds is None else tuple(seeds)
+    n_envs = config.n_envs if n_envs is None else n_envs
+    if n_envs < 1 or max_episode_steps < 1:
+        raise ValueError("environment count and raw step limit must be positive")
+    def factory(rank):
+        def create():
+            env = gym.make("CarRacing-v3", continuous=True,
+                           max_episode_steps=max_episode_steps, render_mode=render_mode)
+            env = TrackSampler(env, seeds, random_order, config.run_seed + rank)
+            env = ActionRepeat(env, config.action_repeat)
+            return Monitor(GrayResize(env, config.image_size))
+        return create
+    env = DummyVecEnv([factory(rank) for rank in range(n_envs)])
+    env = VecTransposeImage(env)
+    env = VecFrameStack(env, n_stack=config.frame_stack, channels_order="first")
+    env.seed(config.run_seed)
+    return env

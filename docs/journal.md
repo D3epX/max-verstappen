@@ -826,3 +826,53 @@ With the time left, the priority is to preserve the chosen checkpoint, measure i
 For the local implementation, we intentionally stopped after `src/ppo/config.py` so I could understand one file before moving through PPO and then the CNNs. Its default learning settings were checked against the two gSDE notebooks. I should not say the empty local PPO modules have been implemented just because the notebooks already train through SB3.
 
 My main lesson is to judge checkpoints by measured driving and to keep explanations tied to evidence. Training longer gave me a useful earlier policy and then a worse later policy. Watching, preserving and evaluating checkpoints mattered more than reaching a large number or assuming that a deeper CNN must win.
+
+## Implementing the full local workflow and setting IMPALA aside
+
+I asked to implement the whole local workflow, explain every file and function, commit the changes, and make the README describe the application professionally rather than present a learning-phase plan. This extends our earlier one-file-at-a-time work: config is no longer the only implemented local component.
+
+I also reported that IMPALA's selected best checkpoint was at **100k**, even though its training run had reached about 500k. The screenshot still showed drifting/circling on grass in the displayed validation attempt. The 100k label means it was the best candidate under that run's selection history, not that it was a successful driver. I have not supplied its complete validation report or the selected weight file for local inspection, so those remain limitations.
+
+I stopped IMPALA because of the deadline and its poor observed driving, not because we proved the architecture cannot work. Hyperparameter tuning, checking the full checkpoint-selection history, testing another training seed, inspecting exploration/action saturation, or increasing the budget after verifying learning are possible later experiments. A lower learning rate is an example to test, not a known solution. The run already performed repeated rollouts and minibatch updates; changing the total target from 500k into shorter chunks would mainly let me monitor it sooner, not automatically fix the policy.
+
+### What is implemented locally now
+
+Both image encoders now have real implementations under their existing folders. The basic CNN has three convolutions and a projection to 256 features. The IMPALA-style encoder has three pooling stages, six residual blocks and the same feature-output size. Layer names are compatible with the notebook weights. Neither encoder itself chooses a road seed or supplies a correct driving label.
+
+The environment module now builds the complete notebook pipeline: a raw 3,000-step TimeLimit, seed sampling, action repetition, grayscale/resize, Monitor, vector transpose and four-frame history. It imports seed groups from config so those definitions stay aligned. The sampler is uniform over the ordinary training pool; public-track fine-tuning is still not enabled.
+
+The policy module chooses the encoder and builds shared CNN features with separate 64-unit actor and critic heads. SB3 still supplies its ActorCriticCnnPolicy, Gaussian/gSDE distributions and optimizer construction. This is not a claim that we wrote every library component ourselves. The local PPO model routes collection and optimization into the project's own modules while retaining SB3's outer learn/log/save infrastructure.
+
+`rollout.py` makes the collection steps explicit. It runs policy inference without gradients, sends bounded controls to the game, stores the original Gaussian samples and old likelihoods, handles time-limit bootstrap from the terminal image, and calls local GAE. It does not bootstrap from the next race's reset image. Its buffer subclass uses SB3 storage and minibatch generation while delegating advantages and returns to our function.
+
+`gae.py` loops backward through the rollout, calculating temporal-difference errors and discounted advantage accumulation. Episode boundaries stop the recursion. `loss.py` computes the clipped actor objective, critic mean squared error, entropy term, approximate KL and clip fraction. Old likelihoods and targets are detached. `update.py` loops through epochs and shuffled minibatches, checks the KL guard, backpropagates the combined loss, clips gradients and updates parameters. Both losses can reach the shared CNN. The local KL log averages all visited minibatches, which differs from SB3's final-epoch KL logging but does not change the update mathematics.
+
+The trainer can start fresh or resume toward a cumulative target, prints the actual device, writes settings/runtime versions, and attempts an atomic save when interrupted. The callback saves every 25k by default and evaluates five validation tracks every 100k. It saves a new best candidate before printing the summary, so a display exception cannot interrupt that selection step in the same way as the earlier notebook issue.
+
+### Loading, comparison and export are separate jobs
+
+The checkpoint module reads native JSON metadata and tensor states from this project's SB3 ZIPs without unpickling embedded notebook classes or lambdas. For training resume it reconstructs the known policy and restores Adam state, transition counter and update counter. It deliberately resets simulator observations; it does not recreate partial rollouts, exact RNG continuation or old episode logging history. Its supported notebook recipe uses a constant learning rate.
+
+The evaluator can compare multiple checkpoints on exactly the same validation seeds, print each race and save summaries with configuration, counter, policy-file fingerprint, device and package versions. It uses completion metadata rather than interpreting any terminated episode as a successful lap. Short raw-step limits are marked as debugging. Mean penalized time remains the primary comparison; finisher-only means can hide failures.
+
+The export writes a CPU-tensor bundle with settings, training counter and source fingerprint. It remains a weights dictionary, not a pickled model object with an `.eval()` method. `load_driver` reconstructs the policy and supplies a `Driver` with `reset` and `act` methods. The driver accepts only raw `(96,96,3)` RGB uint8 images, keeps zero-padded history and repeats controls at the same timing as training. It needs a call after every raw simulator step, and a reset between episodes. Adding another repeat wrapper around that raw-step interface would repeat actions twice incorrectly.
+
+The export verifier compares the raw-step driver with the original vector policy in separate seeded games. It checks deterministic actions, held actions, reward sums and ending flags. I still need to connect this interface to the organizer's actual callable contract: the provided evaluation reference leaves that part as a placeholder. A working local adapter is not the same as organizer acceptance.
+
+### What was actually checked
+
+Five numerical regression tests passed. They check local GAE against SB3 including reset and timeout cases; PPO clipped-loss values and detached old targets; local collection against SB3 on short truncating episodes; actual optimizer-update parity against SB3 rather than two identical early exits; checkpoint/Adam continuation; and DNF tie selection without early-crash bias. Some tests cover several of those behaviors in one method.
+
+Both architectures also completed a short real-CarRacing integration run: 64 training transitions with smaller test rollout/batch settings, a 16-raw-step debug episode limit, periodic checkpoint saving and five-track validation callbacks. These runs test the connections, not racing quality. Their temporary debug checkpoints were kept outside the repository and do not replace the Colab candidates. A command-line two-checkpoint comparison also completed with explicitly shortened debug episodes.
+
+The tensor export and inference comparison passed for the available local Colab file `latest(3).zip`, whose native counter is 500,526. It ran through **2,671 raw steps** on seed 10000 and reported a finish; the adapter and reference policy matched within that run. That local time would be 53.42 seconds. This is not a new training improvement, and it differs from the earlier Colab timing of that counter, so it reinforces the need to record exact checkpoint identity, package versions and execution details. The local machine's PyTorch/Python environment differs from Colab. I cannot assert a unique cause for the timing difference.
+
+A separate short IMPALA export check passed for the temporary 64-transition smoke model over 32 raw steps. That is portability coverage, not a successful IMPALA race. The actual selected 400k basic-CNN ZIP is not currently available in the local Downloads files inspected, so its final export parity still must be run once that exact file is supplied. We must not accidentally submit the local 500,526 test export instead of the selected model.
+
+### README, explanations and remaining submission work
+
+The README now explains CarRacing, the two encoder architectures, local setup, fresh training, resume, comparison, videos, export and the raw-image inference interface. It identifies PPO with the basic CNN and gSDE as the current submission candidate. The IMPALA alternative is documented honestly as set aside, rather than removed from the project or presented as a proven superior model.
+
+The separate implementation reference explains every file and its functions. SB3 attribution and its MIT notice are included because the local collector/update semantics follow its implementation. Source code, tests and documentation are committed; generated weights, videos, virtual environments and caches are excluded from Git. The previously excluded planning/research documents remain separate from this implementation commit.
+
+What still needs real submission evidence is the exact selected 400k export, organizer-compatible entry-point invocation, public-track results and the final evaluation chosen after model selection. No additional competitive local training, successful public fine-tune, or official acceptance is claimed by implementing and testing these files.

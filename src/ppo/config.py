@@ -2,7 +2,7 @@
 
 This file contains settings only. Importing it does not create a game, allocate
 a GPU, load weights, or start training. PPO and the CNN will use these settings
-when we implement their files together.
+when the local trainer creates the model.
 """
 
 from dataclasses import asdict, dataclass
@@ -70,7 +70,7 @@ class PPOConfig:
     # SB3 can stop update passes when approximate KL exceeds 1.5 * this value.
     target_kl: float = 0.03
 
-    # The CNN returns this many features. Actor/critic heads are implemented later.
+    # The CNN returns this many features to the actor and critic heads.
     features_dim: int = 256
 
     def __post_init__(self) -> None:
