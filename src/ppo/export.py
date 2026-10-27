@@ -23,13 +23,40 @@ def export_weights(checkpoint, output):
                 "num_timesteps": int(metadata["num_timesteps"]),
                 "policy_state_dict": {k: v.detach().cpu() for k, v in state.items()},
                 "sb3_version": sb3.__version__, "gymnasium_version": gym.__version__,
-                "source_sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest()}, output)
+                "source_sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
+                "training_sampling": metadata.get("training_sampling"),
+                "finetune_parent": metadata.get("finetune_parent")}, output)
     # Strict loading catches layout/parameter mismatches before submission.
     load_driver(output)
     return output
 
 
-def verify_export(checkpoint, output, seed=10000, max_raw_steps=3000):
+
+def export_driver(checkpoint, output):
+    """Save our importable callable Driver module for torch.load(...).eval().
+
+    This is an OPTIONAL full-object export. Load only your own trusted artifact
+    with weights_only=False and keep the repository classes importable. The
+    default tensor-bundle export remains available for weights-only loading.
+    """
+    output = Path(output)
+    if Path(checkpoint).resolve() == output.resolve() or output.suffix not in (".pt", ".pth"):
+        raise ValueError("Use a separate .pt/.pth output path")
+    driver = load_driver(checkpoint)
+    metadata, _ = read_checkpoint(checkpoint)
+    driver.training_sampling = metadata.get("training_sampling")
+    driver.finetune_parent = metadata.get("finetune_parent")
+    driver.reset()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(driver, output)
+    restored = torch.load(output, map_location="cpu", weights_only=False).eval()
+    if not isinstance(restored, type(driver)):
+        raise TypeError("Export did not reconstruct the expected Driver")
+    restored.reset()
+    return output
+
+
+def verify_export(checkpoint, output, seed=10000, max_raw_steps=3000, *, full_driver=False):
     """Compare adapter actions against the original policy on matching raw frames.
 
     Two seeded simulators let us compare our per-raw-step adapter with the actual
@@ -38,7 +65,8 @@ def verify_export(checkpoint, output, seed=10000, max_raw_steps=3000):
     Any divergence fails verification rather than being silently accepted.
     """
     original, config, steps = load_policy(checkpoint)
-    driver = load_driver(output)
+    driver = (torch.load(output, map_location="cpu", weights_only=False).eval()
+              if full_driver else load_driver(output))
     raw_env = gym.make("CarRacing-v3", continuous=True, max_episode_steps=max_raw_steps)
     vector = build_vec_env(config, (seed,), n_envs=1, random_order=False,
                            max_episode_steps=max_raw_steps)
@@ -82,6 +110,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--format", choices=("weights", "driver"), default="weights")
     parser.add_argument("--verify", action="store_true")
     parser.add_argument("--seed", type=int, default=10000)
     parser.add_argument("--verify-steps", type=int, default=3000)
@@ -92,10 +121,12 @@ def main():
     torch.set_num_threads(2)
     if args.verify_steps < 1:
         parser.error("verify-steps must be positive")
-    path = export_weights(args.checkpoint, args.output)
+    path = (export_driver(args.checkpoint, args.output) if args.format == "driver"
+            else export_weights(args.checkpoint, args.output))
     print("Exported:", path)
     if args.verify:
-        print("Verification:", verify_export(args.checkpoint, path, args.seed, args.verify_steps))
+        print("Verification:", verify_export(args.checkpoint, path, args.seed, args.verify_steps,
+                                             full_driver=args.format == "driver"))
 
 
 if __name__ == "__main__":

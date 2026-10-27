@@ -31,7 +31,9 @@ def read_checkpoint(path):
     if bundle.get("format", "carracing-policy-v1") != "carracing-policy-v1":
         raise ValueError("Unsupported export format")
     return {"experiment_config": bundle["config"], "num_timesteps": bundle["num_timesteps"],
-            "use_sde": bundle["config"].get("use_sde", False)}, bundle["policy_state_dict"]
+            "use_sde": bundle["config"].get("use_sde", False),
+            "training_sampling": bundle.get("training_sampling"),
+            "finetune_parent": bundle.get("finetune_parent")}, bundle["policy_state_dict"]
 
 
 def config_from_metadata(metadata):

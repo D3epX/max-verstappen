@@ -5,14 +5,16 @@ action = driver.act(rgb_observation) on EVERY simulator step. Do not externally
 repeat actions again: this adapter already matches the notebook's repeat timing.
 """
 from collections import deque
+from torch import nn
 import numpy as np
 from PIL import Image
 from .checkpoint import load_policy
 
 
-class Driver:
+class Driver(nn.Module):
     """Keep frame history and repeat state outside the learned policy weights."""
     def __init__(self, policy, config, transitions):
+        super().__init__()
         self.policy, self.config, self.num_timesteps = policy, config, transitions
         self.reset()
 
@@ -26,8 +28,7 @@ class Driver:
 
     def eval(self):
         """Match the familiar PyTorch eval convention without enabling exploration."""
-        self.policy.set_training_mode(False)
-        return self
+        return super().eval()
 
     def act(self, observation):
         """Return [steering, gas, brake]; never inspect simulator internal state."""
@@ -44,7 +45,7 @@ class Driver:
         self.raw_steps += 1
         return self.last_action.copy()
 
-    def __call__(self, observation):
+    def forward(self, observation):
         return self.act(observation)
 
 

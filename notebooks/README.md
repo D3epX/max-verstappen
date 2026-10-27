@@ -97,3 +97,13 @@ cd /home/dahmane/dev/max-verstappen
 The viewer prints completion, raw simulator steps, lap time, penalized time and reward. One track/video is not a complete evaluation. Leave the default 3,000-step limit for challenge-style checks; its shorter-step option is only for debugging.
 
 Local checks passed for loading the uploaded original checkpoint, the short-check IMPALA and gSDE checkpoints, matching the original policy's initial actions, deterministic stepping, command-line parsing, and MP4 writing under shortened test episodes. A desktop window has not been tested through the headless tool environment.
+
+## Optional public-track fine-tuning
+
+Use `ppo_cnn_public_finetune.ipynb` only after permission to train on public seeds. It reads the selected 400k basic-CNN ZIP from `basic_cnn/gsde_recovery_01/best_validation.zip`, hashes/preserves it and trains a separate copy in `basic_cnn/public_mix_from_400k_01`. Do not use the 500,526 latest model as the parent.
+
+The sampler chooses ordinary training roads on 80% of episode resets and one of seeds 202/42/203 on 20%; validation/test remain outside training. Learning rate changes to `1e-4` with the actual model schedule refreshed. This is an experiment, not a promised improvement.
+
+Run setup and definitions through section 10a. It evaluates the protected baseline on all three public roads and ten validation roads. Baseline caching includes parent identity and runtime/device context. Keep `RUN_SMOKE=False`. In section 12 set `RUN_LONG_TRAINING=True` and leave `ADDITIONAL_TIMESTEPS=10_000`. The cumulative target is parent+10k, roughly 410k; complete rollouts can overshoot. Afterward run section 14 for the same public/validation audit. Negative time deltas mean improvement; preserve the parent if the copy deteriorates. Nothing automatically publishes a release or replaces the original.
+
+To resume, keep the same fine-tune folder and sampling settings and set `RESUME_FROM=str(RUN_DIR / "latest.zip")` in section 9. The ordinary local training CLI rejects mixed-sampling resumes so it cannot silently return to uniform sampling. Use this notebook for its mixed sampler.

@@ -119,12 +119,13 @@ Five-track selection is inexpensive but limited. The ten/twenty-track comparison
 - `reset` fills the history with zero images and clears the raw-step counter and held action. Call after every environment reset.
 - `eval` disables training behavior and returns the driver, mirroring PyTorch's familiar convention.
 - `act` validates raw `(96,96,3)` uint8 input. On decision steps it applies the exact Pillow preprocessing, appends a frame and obtains a deterministic bounded action. On intermediate raw steps it returns the held action without adding an extra decision-time image. It returns a copy so the caller cannot accidentally mutate the held control.
-- `__call__` is a convenience alias for `act`.
+- `forward` delegates to `act`, so PyTorch module calls `driver(observation)` use the same interface. The Driver subclasses `nn.Module`.
 - `load_driver` loads an inference policy from ZIP or exported weights and wraps it in episode state. It needs no internet or game object and receives no hidden coordinates.
 
 ## `src/ppo/export.py`
 
 - `export_weights` reads selected native metadata/tensors, writes CPU tensors with a format version, configuration, counter, package versions and source fingerprint, then strictly reloads it. It does not overwrite the source. The resulting dictionary needs `load_driver`; it is not a standalone pickled `nn.Module`.
+- `export_driver` optionally saves an importable full Driver module for the organizer-style `torch.load(..., weights_only=False).eval()` interface. Load only the project's own trusted full-object artifact and keep source classes importable. The default tensor bundle remains available.
 - `verify_export` runs a raw-step Driver and the reference vector policy in separate identically seeded simulators, comparing actions, repeated actions, accumulated rewards and ending flags. This checks preprocessing/history/repeat behavior across a rollout. Any mismatch raises an error; passing one seed is not a proof of all-track performance.
 - `main` exports and optionally invokes parity verification. The default verification limit is the full 3000 raw steps; a shorter check is explicitly reported. The organizer's final callable interface is still external to this repository and must be connected to `load_driver/reset/act`.
 

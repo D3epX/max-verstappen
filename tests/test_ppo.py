@@ -151,6 +151,29 @@ class PPOChecks(unittest.TestCase):
         finally:
             env.close();reference_env.close()
 
+    def test_exported_callable_and_tensor_bundle_match_after_reset(self):
+        from src.ppo.export import export_weights, export_driver
+        from src.ppo.driver import load_driver
+        for architecture in ("basic_cnn", "impala_cnn"):
+            with self.subTest(architecture=architecture), tempfile.TemporaryDirectory() as tmp:
+                env = DummyVecEnv([TinyImages, TinyImages])
+                try:
+                    model = make_model(PPOConfig(architecture=architecture, n_steps=2, batch_size=4), env, "cpu")
+                    source = save_checkpoint(model, Path(tmp) / "source.zip")
+                    weights = export_weights(source, Path(tmp) / "weights.pth")
+                    module = export_driver(source, Path(tmp) / "driver.pt")
+                    tensor_driver = load_driver(weights)
+                    callable_driver = torch.load(module, map_location="cpu", weights_only=False).eval()
+                    self.assertIsInstance(callable_driver, torch.nn.Module)
+                    self.assertFalse(callable_driver.training)
+                    for index in range(8):
+                        if index == 4:
+                            tensor_driver.reset();callable_driver.reset()
+                        image = np.full((96, 96, 3), index * 10, np.uint8)
+                        np.testing.assert_allclose(tensor_driver.act(image), callable_driver(image))
+                finally:
+                    env.close()
+
     def test_dnf_selection_does_not_reward_early_crash(self):
         summary = {"mean_penalized_seconds": 70.}
         timeout = selection_key(summary, [{"reward": -200, "raw_steps": 3000}])
