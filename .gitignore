@@ -8,3 +8,4 @@ submission/
 *.pth
 *.pt
 *.mp4
+!docs/assets/carracing-highlight.mp4

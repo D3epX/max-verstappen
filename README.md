@@ -4,6 +4,12 @@ Continuous-control agents for Gymnasium **CarRacing-v3**, with basic and IMPALA-
 
 The environment supplies a `96 × 96 × 3` RGB image. The agent returns three continuous controls: steering `[-1, 1]`, gas `[0, 1]`, and brake `[0, 1]`. Evaluation allows 3,000 simulator steps, or 60 simulator seconds. An unfinished race receives a 70-second DNF score. Lower mean penalized race time is better.
 
+## Race preview
+
+![PPO and basic CNN driver navigating consecutive corners](docs/assets/carracing-highlight.gif)
+
+A nine-second highlight from the trained driver's run, shown at the original playback speed. [Watch or download the MP4](docs/assets/carracing-highlight.mp4).
+
 ## Architectures
 
 Both configurations use **PPO with generalized state-dependent exploration (gSDE)**. Observations are converted to grayscale, resized to `84 × 84`, and stacked over four decision times. The shared encoder produces 256 features. Separate 64-unit Tanh heads predict three action-distribution means and one value estimate. Training samples controls; evaluation uses bounded deterministic mean controls.
