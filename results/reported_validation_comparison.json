@@ -1,0 +1,212 @@
+[
+  {
+    "label": "best_validation.zip",
+    "architecture": "basic_cnn",
+    "timesteps": 400000,
+    "source": "User-supplied Colab evaluation output; not independently reproduced locally.",
+    "summary": {
+      "tracks": 10,
+      "completion_rate": 0.6,
+      "mean_penalized_seconds": 52.948,
+      "mean_finishing_seconds": 41.580000000000005,
+      "mean_reward": 751.4615160658956
+    },
+    "tracks": [
+      {
+        "split": "validation",
+        "track_seed": 10000,
+        "finished": true,
+        "raw_steps": 1174,
+        "lap_seconds": 23.48,
+        "penalized_seconds": 23.48,
+        "reward": 882.5999807715416
+      },
+      {
+        "split": "validation",
+        "track_seed": 10001,
+        "finished": true,
+        "raw_steps": 2181,
+        "lap_seconds": 43.62,
+        "penalized_seconds": 43.62,
+        "reward": 781.8999740183353
+      },
+      {
+        "split": "validation",
+        "track_seed": 10002,
+        "finished": true,
+        "raw_steps": 1871,
+        "lap_seconds": 37.42,
+        "penalized_seconds": 37.42,
+        "reward": 812.8999667316675
+      },
+      {
+        "split": "validation",
+        "track_seed": 10003,
+        "finished": false,
+        "raw_steps": 3000,
+        "lap_seconds": null,
+        "penalized_seconds": 70.0,
+        "reward": 688.4169765561819
+      },
+      {
+        "split": "validation",
+        "track_seed": 10004,
+        "finished": true,
+        "raw_steps": 2855,
+        "lap_seconds": 57.1,
+        "penalized_seconds": 57.1,
+        "reward": 714.4999661147594
+      },
+      {
+        "split": "validation",
+        "track_seed": 10005,
+        "finished": false,
+        "raw_steps": 3000,
+        "lap_seconds": null,
+        "penalized_seconds": 70.0,
+        "reward": 689.8989938050508
+      },
+      {
+        "split": "validation",
+        "track_seed": 10006,
+        "finished": false,
+        "raw_steps": 3000,
+        "lap_seconds": null,
+        "penalized_seconds": 70.0,
+        "reward": 686.6666954308748
+      },
+      {
+        "split": "validation",
+        "track_seed": 10007,
+        "finished": false,
+        "raw_steps": 3000,
+        "lap_seconds": null,
+        "penalized_seconds": 70.0,
+        "reward": 697.0326275378466
+      },
+      {
+        "split": "validation",
+        "track_seed": 10008,
+        "finished": true,
+        "raw_steps": 2073,
+        "lap_seconds": 41.46,
+        "penalized_seconds": 41.46,
+        "reward": 792.7000058889389
+      },
+      {
+        "split": "validation",
+        "track_seed": 10009,
+        "finished": true,
+        "raw_steps": 2320,
+        "lap_seconds": 46.4,
+        "penalized_seconds": 46.4,
+        "reward": 767.9999738037586
+      }
+    ]
+  },
+  {
+    "label": "latest.zip",
+    "architecture": "basic_cnn",
+    "timesteps": 500526,
+    "source": "User-supplied Colab evaluation output; not independently reproduced locally.",
+    "summary": {
+      "tracks": 10,
+      "completion_rate": 0.4,
+      "mean_penalized_seconds": 61.758,
+      "mean_finishing_seconds": 49.395,
+      "mean_reward": 705.7741698354482
+    },
+    "tracks": [
+      {
+        "split": "validation",
+        "track_seed": 10000,
+        "finished": true,
+        "raw_steps": 2889,
+        "lap_seconds": 57.78,
+        "penalized_seconds": 57.78,
+        "reward": 711.0999797731638
+      },
+      {
+        "split": "validation",
+        "track_seed": 10001,
+        "finished": false,
+        "raw_steps": 3000,
+        "lap_seconds": null,
+        "penalized_seconds": 70.0,
+        "reward": 687.8787616789341
+      },
+      {
+        "split": "validation",
+        "track_seed": 10002,
+        "finished": true,
+        "raw_steps": 2875,
+        "lap_seconds": 57.5,
+        "penalized_seconds": 57.5,
+        "reward": 712.4999660849571
+      },
+      {
+        "split": "validation",
+        "track_seed": 10003,
+        "finished": true,
+        "raw_steps": 1989,
+        "lap_seconds": 39.78,
+        "penalized_seconds": 39.78,
+        "reward": 801.0999902635813
+      },
+      {
+        "split": "validation",
+        "track_seed": 10004,
+        "finished": true,
+        "raw_steps": 2126,
+        "lap_seconds": 42.52,
+        "penalized_seconds": 42.52,
+        "reward": 787.3999670594931
+      },
+      {
+        "split": "validation",
+        "track_seed": 10005,
+        "finished": false,
+        "raw_steps": 3000,
+        "lap_seconds": null,
+        "penalized_seconds": 70.0,
+        "reward": 649.4949524700642
+      },
+      {
+        "split": "validation",
+        "track_seed": 10006,
+        "finished": false,
+        "raw_steps": 3000,
+        "lap_seconds": null,
+        "penalized_seconds": 70.0,
+        "reward": 686.6666947007179
+      },
+      {
+        "split": "validation",
+        "track_seed": 10007,
+        "finished": false,
+        "raw_steps": 3000,
+        "lap_seconds": null,
+        "penalized_seconds": 70.0,
+        "reward": 682.1958327144384
+      },
+      {
+        "split": "validation",
+        "track_seed": 10008,
+        "finished": false,
+        "raw_steps": 3000,
+        "lap_seconds": null,
+        "penalized_seconds": 70.0,
+        "reward": 642.6523334234953
+      },
+      {
+        "split": "validation",
+        "track_seed": 10009,
+        "finished": false,
+        "raw_steps": 3000,
+        "lap_seconds": null,
+        "penalized_seconds": 70.0,
+        "reward": 696.7532201856375
+      }
+    ]
+  }
+]

@@ -1,0 +1,60 @@
+{
+  "source": "Additional user-supplied six-episode check; exact checkpoint identity was not provided. Validation rows match the earlier latest-checkpoint report.",
+  "checkpoint_transitions": null,
+  "tracks": [
+    {
+      "split": "training",
+      "track_seed": 1000,
+      "finished": false,
+      "raw_steps": 3000,
+      "lap_seconds": null,
+      "penalized_seconds": 70.0,
+      "reward": 659.0443699657917
+    },
+    {
+      "split": "training",
+      "track_seed": 1001,
+      "finished": false,
+      "raw_steps": 3000,
+      "lap_seconds": null,
+      "penalized_seconds": 70.0,
+      "reward": 696.7948504686356
+    },
+    {
+      "split": "training",
+      "track_seed": 1002,
+      "finished": false,
+      "raw_steps": 3000,
+      "lap_seconds": null,
+      "penalized_seconds": 70.0,
+      "reward": 670.9091029465199
+    },
+    {
+      "split": "validation",
+      "track_seed": 10000,
+      "finished": true,
+      "raw_steps": 2889,
+      "lap_seconds": 57.78,
+      "penalized_seconds": 57.78,
+      "reward": 711.0999797731638
+    },
+    {
+      "split": "validation",
+      "track_seed": 10001,
+      "finished": false,
+      "raw_steps": 3000,
+      "lap_seconds": null,
+      "penalized_seconds": 70.0,
+      "reward": 687.8787616789341
+    },
+    {
+      "split": "validation",
+      "track_seed": 10002,
+      "finished": true,
+      "raw_steps": 2875,
+      "lap_seconds": 57.5,
+      "penalized_seconds": 57.5,
+      "reward": 712.4999660849571
+    }
+  ]
+}

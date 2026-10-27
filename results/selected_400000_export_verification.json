@@ -1,0 +1,12 @@
+{
+  "source_checkpoint": "selected_400000(1).zip",
+  "source_sha256": "903c0d28ac56b99d5adaaacdd38b2dcf7f6ff59d544ce09276886276492dde51",
+  "weights_sha256": "7b4854b3e0e8efe6f8087c755131ebab116704402a2cf98cf3f280519b87b6cb",
+  "checkpoint_transitions": 400000,
+  "verified_raw_steps": 1818,
+  "seed": 10000,
+  "finished": true,
+  "lap_seconds": 36.36,
+  "configured_raw_step_limit": 3000,
+  "note": "Export parity check against source policy in the local runtime; not an independent held-out performance benchmark."
+}
