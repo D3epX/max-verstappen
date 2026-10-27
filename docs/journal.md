@@ -877,25 +877,11 @@ The separate implementation reference explains every file and its functions. SB3
 
 What still needs real submission evidence is the exact selected 400k export, organizer-compatible entry-point invocation, public-track results and the final evaluation chosen after model selection. No additional competitive local training, successful public fine-tune, or official acceptance is claimed by implementing and testing these files.
 
-### Preparing a separate public-track fine-tuning experiment
+### Withdrawing the public-seed training proposal
 
-I am keeping the basic CNN as my candidate and stopping the IMPALA experiment for the deadline. My ten-track comparison gave the selected 400k basic checkpoint six finishes out of ten and 52.948 seconds mean penalized time. The 500,526 checkpoint finished four out of ten with 61.758 seconds mean penalized time. More training did not automatically give me a better model. I should start this experiment from the selected 400k weights, not simply the newest file.
+I asked to remove the proposed public/ordinary mixed-training notebook and its instructions. After checking the written guideline again, it says to use the public seeds only to test. I am no longer relying on my earlier uncertain permission statement to recommend training on them. The selected 400k baseline stays preserved. Any separate Colab experiment already run is not undone by deleting a local notebook, and its results must not be described as unseen-track results if it trained on those tracks.
 
-I confirmed that training on the public seeds is allowed for this challenge. I want to improve on seeds 202, 42 and 203 without forgetting how to drive other roads. The new notebook copies the selected parent into a separate experiment folder and records its SHA-256 and transition counter. It refuses a different parent counter instead of quietly starting from the wrong file. My original checkpoint stays unchanged.
-
-For this first experiment, each training episode reset has a 20% chance of choosing a public road and an 80% chance of choosing an ordinary training road. These percentages are trial settings, not a scientific optimum. They are probabilities for episode starts, not exact proportions of transitions. A short run may not select all three public roads. The notebook now records episode starts by seed so I can see what it actually sampled. A reset at the end of a segment can count even if the new race has not received an action yet. A hard runtime disconnect may prevent that final report from being written.
-
-I keep the CNN, frame stack, action repeat, reward, PPO rollout and minibatch settings. I lower the learning rate to 0.0001 and refresh the loaded model's learning-rate schedule, so this is an actual optimizer change rather than just editing a config dictionary. Lowering it is an experiment to make smaller updates; it is not a verified repair for drifting. Since I change both the sampling and the learning rate, this experiment cannot tell me which change caused any improvement.
-
-Before training, I evaluate an independent copy of the parent on the three public roads and ten validation roads. Reports identify the exact parent and runtime/device context. The validation and final-test seeds remain outside the training pool. These ten validation roads have already been used for model selection, so they are not an untouched final test. I will compare completion and mean penalized time, not just watch one good video or compare finisher-only times.
-
-The first extra budget is 10,000 policy transitions. From 400k, that means a cumulative target near 410k, with a possible overshoot to complete a PPO rollout. It does not mean 10,000 episodes or 10,000 steps per public road. I keep the smoke-training switch off to avoid an extra update before the protected comparison. If I resume, I load the fine-tune folder's latest ZIP and keep the same sampler and parent. The ordinary local trainer rejects these mixed-sampling checkpoints rather than silently changing their training distribution.
-
-After the segment I evaluate the copy on the same public and validation roads and save a separate audit. Negative penalized-time deltas mean faster results. If public performance improves but validation deteriorates, I have evidence of a tradeoff, not a guaranteed faster mystery-track driver. I keep the parent available and do not automatically replace it. No successful public fine-tune has been measured yet; this entry describes the experiment and its checks.
-
-The notebook's syntax and format checks passed. A 1,000-reset sampler check selected public roads 207 times and never selected validation/test roads. A separate short real-environment check continued a temporary 64-transition fixture to 96 transitions, checked the reduced Adam learning rate, and verified that the source checkpoint and independent baseline weights stayed unchanged. This fixture is only a pipeline check, not the competitive 400k model. Episode counters are also checked through the vector wrappers.
-
-The local export now optionally saves a callable Driver module as well as the tensor bundle. Both architecture exports have a regression check for matching actions and resetting frame history. The six local numerical/export tests passed. These checks do not establish organizer acceptance or export parity for the exact selected 400k file, which still needs to be downloaded from Drive. README/release publication is paused until the fine-tuning comparison and submission artifact are chosen.
+My next question is how to reduce left/right steering oscillation while preserving completion and improving lap time. A friend reported improving stability, but I do not yet know which change helped their model. Possible future experiments should use ordinary training roads and compare on separate evaluation roads. No steering penalty, filter, new reward or improved model has been implemented or validated by this cleanup.
 
 ### Exporting my actual selected 400k weights
 
@@ -906,3 +892,7 @@ The complete local export comparison passed on seed 10000. The exported driver a
 ### Publishing a baseline while fine-tuning continues
 
 With about half an hour remaining, I chose to publish the verified 400k basic-CNN baseline rather than wait with no downloadable model. The release includes its inference weights, original training ZIP, checksums, reports and loading instructions. It clearly separates the reported ten-track Colab results from the local export-parity check and leaves the timing discrepancy visible. The separate fine-tuning run has not replaced this baseline and has no measured improvement claimed here. Publication is distribution of the candidate, not proof of official submission acceptance.
+
+### Removing the discarded notebook
+
+The public-seed mixed-training notebook and its run instructions have been removed at my request. The local trainer still rejects a checkpoint with a different sampler instead of silently changing its training distribution. General checkpoint metadata remains compatible with previous exports. My baseline weights and original training checkpoint are unchanged. Earlier journal entries remain historical discussion, not current instructions or confirmed organizer permission.

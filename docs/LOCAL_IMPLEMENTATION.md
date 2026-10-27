@@ -12,7 +12,7 @@ During inference, the driver receives one raw RGB image per simulator step. It m
 
 **`PPOConfig`** contains model and learning settings, not a running model. The architecture flag chooses basic or residual image features. `run_seed` controls initialization/sampling; the training seed tuple controls roads. The image settings, rollout settings, optimizer settings and exploration settings match the current gSDE notebooks.
 
-- `PPOConfig.__post_init__` validates architecture names, positive dimensions, minibatch divisibility, finite coefficients, seed range and excluded evaluation groups. Public fine-tuning is deliberately not enabled in this baseline.
+- `PPOConfig.__post_init__` validates architecture names, positive dimensions, minibatch divisibility, finite coefficients, seed range and excluded evaluation groups. Evaluation groups are excluded from training.
 - `rollout_size` returns `n_envs * n_steps`: 2 * 512 = 1024 by default.
 - `to_dict` produces native JSON/checkpoint metadata, converting the training-seed tuple to a list.
 

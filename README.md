@@ -77,7 +77,7 @@ Public-track reporting:
 .venv/bin/python -m src.ppo.evaluate --checkpoints /absolute/path/best_validation.zip --split public --count 3 --output racing_outputs/public_results.json
 ```
 
-The baseline trains on seeds 1000–1099; validation uses 10000–10019; final test uses 20000–20019; public tracks are 202, 42 and 203. Public-seed fine-tuning is not enabled by this implementation. Although permission was reported, any mixed-training experiment needs a separate preserved copy and held-out checks.
+The baseline trains on seeds 1000–1099; validation uses 10000–10019; final test uses 20000–20019; public tracks are 202, 42 and 203. Training excludes validation, final-test and public seeds.
 
 ## Watch a driver
 

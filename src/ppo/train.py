@@ -96,7 +96,7 @@ def main():
     if args.resume:
         metadata, _ = read_checkpoint(args.resume)
         if metadata.get("training_sampling"):
-            parser.error("This checkpoint used mixed sampling; resume with the fine-tuning notebook to preserve its sampler.")
+            parser.error("This checkpoint used a different training sampler and cannot be resumed by this uniform-sampling trainer.")
         config = config_from_metadata(metadata)
         if any(getattr(config, key) != value for key, value in overrides.items()):
             parser.error("Resume keeps the checkpoint settings. Use a fresh experiment for hyperparameter changes.")

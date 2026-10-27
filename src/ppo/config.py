@@ -13,7 +13,7 @@ import math
 
 # These are road identifiers, not difficulty levels or neural-network seeds.
 # Keep validation and final-test roads separate from the roads used to learn.
-# Public-track fine-tuning is a later experiment; it is NOT enabled here.
+# Public evaluation tracks stay outside the training pool.
 TRAINING_SEEDS = tuple(range(1000, 1100))
 VALIDATION_SEEDS = tuple(range(10000, 10020))
 TEST_SEEDS = tuple(range(20000, 20020))
