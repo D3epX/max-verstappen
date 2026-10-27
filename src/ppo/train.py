@@ -97,6 +97,8 @@ def main():
         metadata, _ = read_checkpoint(args.resume)
         if metadata.get("training_sampling"):
             parser.error("This checkpoint used a different training sampler and cannot be resumed by this uniform-sampling trainer.")
+        if metadata.get("training_reward"):
+            parser.error("This checkpoint used a custom training reward; resume with its matching reward wrapper.")
         config = config_from_metadata(metadata)
         if any(getattr(config, key) != value for key, value in overrides.items()):
             parser.error("Resume keeps the checkpoint settings. Use a fresh experiment for hyperparameter changes.")
